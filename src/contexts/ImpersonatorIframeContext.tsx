@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from "react";
 import { providers, utils } from "ethers";
-import { useAppCommunicator } from "../helpers/communicator";
+import { useAppCommunicator } from "../../helpers/communicator";
 import {
   InterfaceMessageIds,
   InterfaceMessageProps,
@@ -22,7 +22,7 @@ import {
   Transaction,
   TransactionDetails,
   TransactionStatus,
-} from "../types";
+} from "../../types";
 
 interface TransactionWithId extends Transaction {
   id: number | string;

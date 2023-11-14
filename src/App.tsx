@@ -1,4 +1,4 @@
-import { ImpersonatorIframe } from "../components/ImpersonatorIframe";
+import { ImpersonatorIframe } from "./components/ImpersonatorIframe";
 
 function App() {
   return (

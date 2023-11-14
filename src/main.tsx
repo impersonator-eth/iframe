@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
-import { ImpersonatorIframeProvider } from "../contexts/ImpersonatorIframeContext.tsx";
+import { ImpersonatorIframeProvider } from "../src/contexts/ImpersonatorIframeContext.tsx";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
