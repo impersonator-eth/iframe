@@ -1,7 +1,7 @@
 {
   "name": "@impersonator/iframe",
   "description": "An iframe component that allows to open dapps with any Ethereum address impersonated.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Apoorv Lathey <apoorv.xyz>",
   "license": "MIT",
   "homepage": "https://github.com/impersonator-eth/iframe#readme",

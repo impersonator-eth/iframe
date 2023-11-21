@@ -43,6 +43,7 @@ type SafeInjectContextType = {
   ) => void;
   onUserTxConfirm: (safeTxHash: string, requestId: RequestId) => void;
   onTxReject: (requestId: RequestId) => void;
+  isReady: boolean;
 };
 
 export const ImpersonatorIframeContext = createContext<SafeInjectContextType>({
@@ -57,6 +58,7 @@ export const ImpersonatorIframeContext = createContext<SafeInjectContextType>({
   sendMessageToIFrame: () => {},
   onUserTxConfirm: () => {},
   onTxReject: () => {},
+  isReady: false,
 });
 
 interface FCProps {
@@ -72,6 +74,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
   const [provider, setProvider] = useState<providers.StaticJsonRpcProvider>();
   const [latestTransaction, setLatestTransaction] =
     useState<TransactionWithId>();
+  const [isReady, setIsReady] = useState<boolean>(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const communicator = useAppCommunicator(iframeRef);
@@ -220,6 +223,8 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
 
       // openSignMessageModal(typedData, msg.data.id, Methods.signTypedMessage)
     });
+
+    setIsReady(true);
   }, [communicator, address, provider]);
 
   return (
@@ -236,6 +241,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
         sendMessageToIFrame,
         onUserTxConfirm,
         onTxReject,
+        isReady,
       }}
     >
       {children}

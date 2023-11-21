@@ -18,7 +18,7 @@ export const ImpersonatorIframe = ({
   rpcUrl,
   onLoad,
 }: Props) => {
-  const { iframeRef, setAddress, setAppUrl, setRpcUrl } =
+  const { iframeRef, setAddress, setAppUrl, setRpcUrl, isReady } =
     useImpersonatorIframe();
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export const ImpersonatorIframe = ({
     }
   }, [src, setAppUrl, address, setAddress, rpcUrl, setRpcUrl]);
 
-  return (
+  return isReady ? (
     <iframe
       width={width}
       height={height}
@@ -40,5 +40,5 @@ export const ImpersonatorIframe = ({
       ref={iframeRef}
       onLoad={onLoad}
     />
-  );
+  ) : null;
 };
