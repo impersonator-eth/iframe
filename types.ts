@@ -48,9 +48,7 @@ export interface SafeInfo {
 }
 export interface InterfaceMessageToPayload {
   [INTERFACE_MESSAGES.ON_SAFE_INFO]: SafeInfo;
-  [INTERFACE_MESSAGES.TRANSACTION_CONFIRMED]: {
-    safeTxHash: string;
-  };
+  [INTERFACE_MESSAGES.TRANSACTION_CONFIRMED]: object;
   [INTERFACE_MESSAGES.ENV_INFO]: {
     txServiceUrl: string;
   };

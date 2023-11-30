@@ -22,9 +22,19 @@ import {
   Transaction,
   TransactionDetails,
   TransactionStatus,
+  EIP712TypedData,
 } from "../../types";
 
 interface TransactionWithId extends Transaction {
+  id: number | string;
+}
+
+interface MessageWithId {
+  id: number | string;
+  message: string;
+}
+
+interface TypedDataWithId extends EIP712TypedData {
   id: number | string;
 }
 
@@ -34,6 +44,8 @@ type SafeInjectContextType = {
   rpcUrl: string | undefined;
   iframeRef: React.RefObject<HTMLIFrameElement> | null;
   latestTransaction: TransactionWithId | undefined;
+  latestMessageToSign: MessageWithId | undefined;
+  latestTypedDataToSign: TypedDataWithId | undefined;
   setAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
   setAppUrl: React.Dispatch<React.SetStateAction<string | undefined>>;
   setRpcUrl: React.Dispatch<React.SetStateAction<string | undefined>>;
@@ -41,7 +53,7 @@ type SafeInjectContextType = {
     message: InterfaceMessageProps<T>,
     requestId?: RequestId
   ) => void;
-  onUserTxConfirm: (safeTxHash: string, requestId: RequestId) => void;
+  onUserTxConfirm: (data: object, requestId: RequestId) => void;
   onTxReject: (requestId: RequestId) => void;
   isReady: boolean;
 };
@@ -52,6 +64,8 @@ export const ImpersonatorIframeContext = createContext<SafeInjectContextType>({
   rpcUrl: undefined,
   iframeRef: null,
   latestTransaction: undefined,
+  latestMessageToSign: undefined,
+  latestTypedDataToSign: undefined,
   setAddress: () => {},
   setAppUrl: () => {},
   setRpcUrl: () => {},
@@ -74,6 +88,10 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
   const [provider, setProvider] = useState<providers.StaticJsonRpcProvider>();
   const [latestTransaction, setLatestTransaction] =
     useState<TransactionWithId>();
+  const [latestMessageToSign, setLatestMessageToSign] =
+    useState<MessageWithId>();
+  const [latestTypedDataToSign, setLatestTypedDataToSign] =
+    useState<TypedDataWithId>();
   const [isReady, setIsReady] = useState<boolean>(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -100,18 +118,18 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
     [iframeRef, appUrl]
   );
 
-  const onUserTxConfirm = (safeTxHash: string, requestId: RequestId) => {
+  const onUserTxConfirm = (data: object, requestId: RequestId) => {
     // Safe Apps SDK V1 Handler
     sendMessageToIFrame(
       {
         messageId: "TRANSACTION_CONFIRMED", // INTERFACE_MESSAGES.TRANSACTION_CONFIRMED
-        data: { safeTxHash },
+        data,
       },
       requestId
     );
 
     // Safe Apps SDK V2 Handler
-    communicator?.send({ safeTxHash }, requestId as string);
+    communicator?.send(data, requestId as string);
   };
 
   const onTxReject = (requestId: RequestId) => {
@@ -211,16 +229,20 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
     });
 
     communicator?.on(Methods.signMessage, async (msg) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { message } = msg.data.params as SignMessageParams;
-
+      setLatestMessageToSign({
+        id: msg.data.id,
+        message,
+      });
       // openSignMessageModal(message, msg.data.id, Methods.signMessage)
     });
 
     communicator?.on(Methods.signTypedMessage, async (msg) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { typedData } = msg.data.params as SignTypedMessageParams;
-
+      setLatestTypedDataToSign({
+        id: msg.data.id,
+        ...typedData,
+      });
       // openSignMessageModal(typedData, msg.data.id, Methods.signTypedMessage)
     });
 
@@ -235,6 +257,8 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
         rpcUrl,
         iframeRef,
         latestTransaction,
+        latestMessageToSign,
+        latestTypedDataToSign,
         setAddress,
         setAppUrl,
         setRpcUrl,
