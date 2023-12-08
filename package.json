@@ -1,16 +1,19 @@
 {
-  "name": "@impersonator/iframe",
-  "description": "An iframe component that allows to open dapps with any Ethereum address impersonated.",
-  "version": "0.1.1",
-  "author": "Apoorv Lathey <apoorv.xyz>",
+  "name": "dappscout-iframe",
+  "description": "A set of context and hook for an iframe that allows interaction with dApps using a connected wallet.",
+  "version": "0.1.0",
+  "author": "Maksim Alekseenko (https://github.com/maxaleks)",
+  "contributors": [
+    "Apoorv Lathey <apoorv.xyz>"
+  ],
   "license": "MIT",
-  "homepage": "https://github.com/impersonator-eth/iframe#readme",
+  "homepage": "https://github.com/blockscout/iframe#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/impersonator-eth/iframe"
+    "url": "git+https://github.com/blockscout/iframe"
   },
   "bugs": {
-    "url": "https://github.com/impersonator-eth/iframe/issues"
+    "url": "https://github.com/blockscout/iframe/issues"
   },
   "type": "module",
   "scripts": {
@@ -49,13 +52,13 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/impersonator-iframe.umd.js",
-  "module": "./dist/impersonator-iframe.es.js",
+  "main": "./dist/dappscout-iframe.umd.js",
+  "module": "./dist/dappscout-iframe.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/impersonator-iframe.es.js",
-      "require": "./dist/impersonator-iframe.umd.js",
+      "import": "./dist/dappscout-iframe.es.js",
+      "require": "./dist/dappscout-iframe.umd.js",
       "types": "./dist/index.d.ts"
     }
   }

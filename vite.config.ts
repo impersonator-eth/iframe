@@ -14,9 +14,9 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, "src/lib/index.ts"),
-      name: "ImpersonatorIframe",
+      name: "DappscoutIframe",
       formats: ["es", "umd"],
-      fileName: (format) => `impersonator-iframe.${format}.js`,
+      fileName: (format) => `dappscout-iframe.${format}.js`,
     },
     rollupOptions: {
       external: ["react", "react-dom", "ethers"],

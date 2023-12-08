@@ -1,12 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
-import { ImpersonatorIframeProvider } from "../src/contexts/ImpersonatorIframeContext.tsx";
+import { DappscoutIframeProvider } from "../src/contexts/DappscoutIframeContext.tsx";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ImpersonatorIframeProvider>
-      <App />
-    </ImpersonatorIframeProvider>
+    <DappscoutIframeProvider>
+      <div></div>
+    </DappscoutIframeProvider>
   </React.StrictMode>
 );

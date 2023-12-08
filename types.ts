@@ -48,7 +48,7 @@ export interface SafeInfo {
 }
 export interface InterfaceMessageToPayload {
   [INTERFACE_MESSAGES.ON_SAFE_INFO]: SafeInfo;
-  [INTERFACE_MESSAGES.TRANSACTION_CONFIRMED]: object;
+  [INTERFACE_MESSAGES.TRANSACTION_CONFIRMED]: unknown;
   [INTERFACE_MESSAGES.ENV_INFO]: {
     txServiceUrl: string;
   };
@@ -86,6 +86,9 @@ export declare type SDKRequestData<M extends Methods = Methods, P = unknown> = {
 export declare type SDKMessageEvent = MessageEvent<SDKRequestData>;
 export declare type SendTransactionsResponse = {
   safeTxHash: string;
+};
+export declare type SignMessageResponse = {
+  signature: string;
 };
 export enum RPC_AUTHENTICATION {
   API_KEY_PATH = "API_KEY_PATH",
@@ -450,8 +453,8 @@ export interface MethodToResponse {
   [Methods.getChainInfo]: ChainInfo;
   [Methods.getTxBySafeTxHash]: GatewayTransactionDetails;
   [Methods.getSafeBalances]: SafeBalances[];
-  [Methods.signMessage]: SendTransactionsResponse;
-  [Methods.signTypedMessage]: SendTransactionsResponse;
+  [Methods.signMessage]: SignMessageResponse;
+  [Methods.signTypedMessage]: SignMessageResponse;
   [Methods.getEnvironmentInfo]: EnvironmentInfo;
   [Methods.requestAddressBook]: AddressBookItem[];
   [Methods.wallet_getPermissions]: Permission[];
