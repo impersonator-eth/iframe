@@ -1,4 +1,4 @@
-import { BigNumberish, BytesLike } from "ethers";
+import { Hex } from 'viem';
 
 export interface SelectedNetworkOption {
   label: string;
@@ -488,9 +488,9 @@ export declare const RPC_CALLS: {
 };
 
 export declare type RpcCallNames = keyof typeof RPC_CALLS;
-export declare type RPCPayload<P = unknown[]> = {
+export declare type RPCPayload = {
   call: RpcCallNames;
-  params: P | unknown[];
+  params?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 export declare type SignMessageParams = {
   message: string;
@@ -498,9 +498,9 @@ export declare type SignMessageParams = {
 export interface TypedDataDomain {
   name?: string;
   version?: string;
-  chainId?: BigNumberish;
+  chainId?: number | string | bigint | Hex | Uint8Array;
   verifyingContract?: string;
-  salt?: BytesLike;
+  salt?: Hex | Uint8Array | string;
 }
 export interface TypedDataTypes {
   name: string;

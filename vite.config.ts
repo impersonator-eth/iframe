@@ -19,12 +19,12 @@ export default defineConfig({
       fileName: (format) => `dappscout-iframe.${format}.js`,
     },
     rollupOptions: {
-      external: ["react", "react-dom", "ethers"],
+      external: ["react", "react-dom", "viem"],
       output: {
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
-          ethers: "ethers",
+          viem: "viem",
         },
       },
     },

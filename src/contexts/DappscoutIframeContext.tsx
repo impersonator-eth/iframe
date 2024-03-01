@@ -8,7 +8,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { providers, utils } from "ethers";
+import { http, getAddress, createPublicClient, PublicClient, Hash } from 'viem'
 import { useAppCommunicator } from "../../helpers/communicator";
 import {
   InterfaceMessageIds,
@@ -48,7 +48,7 @@ interface IframeProps {
 export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
   children, address, appUrl, rpcUrl, sendTransaction, signMessage, signTypedData,
 }) => {
-  const [provider, setProvider] = useState<providers.StaticJsonRpcProvider>();
+  const [publicClient, setPublicClient] = useState<PublicClient>();
   const [isReady, setIsReady] = useState<boolean>(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -92,15 +92,15 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
   useEffect(() => {
     if (!rpcUrl) return;
 
-    setProvider(new providers.StaticJsonRpcProvider(rpcUrl));
+    setPublicClient(createPublicClient({ transport: http(rpcUrl) }));
   }, [rpcUrl]);
 
   useEffect(() => {
-    if (!provider) return;
+    if (!publicClient) return;
 
     communicator?.on(Methods.getSafeInfo, async () => ({
       safeAddress: address,
-      chainId: (await provider.getNetwork()).chainId,
+      chainId: await publicClient.getChainId(),
       owners: [],
       threshold: 1,
       isReadOnly: false,
@@ -111,13 +111,13 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
     }));
 
     communicator?.on(Methods.rpcCall, async (msg) => {
+      console.log("communicator.rpcCall", msg);
       const params = msg.data.params as RPCPayload;
-
       try {
-        const response = (await provider.send(
-          params.call,
-          params.params
-        )) as MethodToResponse["rpcCall"];
+        const response = (await publicClient.request({
+          method: params.call,
+          params: params.params,
+        })) as MethodToResponse["rpcCall"];
         return response;
       } catch (err) {
         return err;
@@ -126,24 +126,24 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
 
     communicator?.on(Methods.getTxBySafeTxHash, async (msg) => {
       console.log("communicator.getTxBySafeTxHash", msg);
-      const { safeTxHash } = msg.data.params as { safeTxHash: string };
+      const { safeTxHash } = msg.data.params as { safeTxHash: Hash };
 
       // some RPCs don't return timestamp with txn so using blockNumber to check if txn confirmed or not
-      const { timestamp, blockNumber, to, data, value } =
-        await provider.getTransaction(safeTxHash);
+      const { blockNumber, to, input, value } = await publicClient.getTransaction({ hash: safeTxHash });
+      const { timestamp } = await publicClient.getBlock({ blockNumber });
 
       const response: TransactionDetails = {
         txId: safeTxHash,
         txStatus: blockNumber
           ? TransactionStatus.SUCCESS
           : TransactionStatus.PENDING,
-        executedAt: timestamp,
+        executedAt: Number(timestamp),
         txInfo: {
           type: "Custom",
           to: {
             value: to ?? "",
           },
-          dataSize: data,
+          dataSize: input,
           value: value.toString(),
           isCancellation: false,
         },
@@ -158,7 +158,7 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
       try {
         const transactions = (msg.data.params as { txs: Transaction[] }).txs.map(
           ({ to, ...rest }) => ({
-            to: utils.getAddress(to), // checksummed
+            to: getAddress(to), // checksummed
             ...rest,
           })
         );
@@ -193,7 +193,7 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
 
     setIsReady(true);
   }, [
-    communicator, address, provider, onUserTxConfirm, onTxReject,
+    communicator, address, publicClient, onUserTxConfirm, onTxReject,
     sendTransaction, signMessage, signTypedData,
   ]);
 
