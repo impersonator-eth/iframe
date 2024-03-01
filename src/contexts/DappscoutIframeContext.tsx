@@ -8,7 +8,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { http, getAddress, createPublicClient, PublicClient, Hash } from 'viem'
+import { http, getAddress, createPublicClient, PublicClient, Hash, isHex, fromHex } from 'viem'
 import { useAppCommunicator } from "../../helpers/communicator";
 import {
   InterfaceMessageIds,
@@ -173,7 +173,8 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
       console.log("communicator.signMessage", msg);
       try {
         const { message } = msg.data.params as SignMessageParams;
-        const signature = await signMessage?.(message);
+        const msgStr = isHex(message) ? fromHex(message, 'string') : message;
+        const signature = await signMessage?.(msgStr);
         onUserTxConfirm({ signature }, msg.data.id as string);
       } catch (err) {
         onTxReject(msg.data.id as string);
