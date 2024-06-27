@@ -1,7 +1,7 @@
 {
   "name": "dappscout-iframe",
   "description": "A set of context and hook for an iframe that allows interaction with dApps using a connected wallet.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "Maksim Alekseenko (https://github.com/maxaleks)",
   "contributors": [
     "Apoorv Lathey <apoorv.xyz>"

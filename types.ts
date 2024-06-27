@@ -522,4 +522,6 @@ export interface Transaction {
   to: string;
   value: string;
   data: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
 }

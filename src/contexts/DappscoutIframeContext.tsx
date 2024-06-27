@@ -8,7 +8,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { http, getAddress, createPublicClient, PublicClient, Hash, isHex, fromHex } from 'viem'
+import { http, getAddress, createPublicClient, PublicClient, Hash, isHex, fromHex } from "viem";
 import { useAppCommunicator } from "../../helpers/communicator";
 import {
   InterfaceMessageIds,
@@ -50,6 +50,7 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
 }) => {
   const [publicClient, setPublicClient] = useState<PublicClient>();
   const [isReady, setIsReady] = useState<boolean>(false);
+  const [chainId, setChainId] = useState<number>();
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const communicator = useAppCommunicator(iframeRef);
@@ -92,15 +93,22 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
   useEffect(() => {
     if (!rpcUrl) return;
 
-    setPublicClient(createPublicClient({ transport: http(rpcUrl) }));
+    const publicClient = createPublicClient({ transport: http(rpcUrl) });
+    setPublicClient(publicClient);
+
+    async function getChainId() {
+      const chainId = await publicClient.getChainId();
+      setChainId(chainId);
+    }
+    getChainId();
   }, [rpcUrl]);
 
   useEffect(() => {
-    if (!publicClient) return;
+    if (!publicClient || !chainId) return;
 
     communicator?.on(Methods.getSafeInfo, async () => ({
       safeAddress: address,
-      chainId: await publicClient.getChainId(),
+      chainId: chainId,
       owners: [],
       threshold: 1,
       isReadOnly: false,
@@ -157,7 +165,8 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
       console.log("communicator.sendTransactions", msg);
       try {
         const transactions = (msg.data.params as { txs: Transaction[] }).txs.map(
-          ({ to, ...rest }) => ({
+          // remove maxFeePerGas and maxPriorityFeePerGas from txs because they cause an error sometimes
+          ({ to, maxFeePerGas, maxPriorityFeePerGas, ...rest }) => ({ // eslint-disable-line @typescript-eslint/no-unused-vars
             to: getAddress(to), // checksummed
             ...rest,
           })
@@ -195,7 +204,7 @@ export const DappscoutIframeProvider: React.FunctionComponent<IframeProps> = ({
     setIsReady(true);
   }, [
     communicator, address, publicClient, onUserTxConfirm, onTxReject,
-    sendTransaction, signMessage, signTypedData,
+    sendTransaction, signMessage, signTypedData, chainId,
   ]);
 
   return (
