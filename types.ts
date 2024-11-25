@@ -473,7 +473,9 @@ export type SuccessResponse<T = MethodToResponse[Methods]> = {
 };
 export declare const RPC_CALLS: {
   readonly eth_call: "eth_call";
+  readonly eth_gasPrice: "eth_gasPrice";
   readonly eth_getLogs: "eth_getLogs";
+  readonly eth_getBalance: "eth_getBalance";
   readonly eth_getCode: "eth_getCode";
   readonly eth_getBlockByHash: "eth_getBlockByHash";
   readonly eth_getBlockByNumber: "eth_getBlockByNumber";
@@ -481,6 +483,7 @@ export declare const RPC_CALLS: {
   readonly eth_getTransactionByHash: "eth_getTransactionByHash";
   readonly eth_getTransactionReceipt: "eth_getTransactionReceipt";
   readonly eth_getTransactionCount: "eth_getTransactionCount";
+  readonly eth_estimateGas: "eth_estimateGas";
 };
 
 export declare type RpcCallNames = keyof typeof RPC_CALLS;

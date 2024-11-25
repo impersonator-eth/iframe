@@ -7,6 +7,7 @@ interface Props {
   src: string;
   address: string;
   rpcUrl: string;
+  paymasterRpcUrl?: string,
   onLoad?: () => void;
 }
 
@@ -16,9 +17,10 @@ export const ImpersonatorIframe = ({
   src,
   address,
   rpcUrl,
+  paymasterRpcUrl,
   onLoad,
 }: Props) => {
-  const { iframeRef, setAddress, setAppUrl, setRpcUrl, isReady } =
+  const { iframeRef, setAddress, setAppUrl, setRpcUrl, setPaymasterRpcUrl, isReady } =
     useImpersonatorIframe();
 
   useEffect(() => {
@@ -27,7 +29,10 @@ export const ImpersonatorIframe = ({
       setAddress(address);
       setRpcUrl(rpcUrl);
     }
-  }, [src, setAppUrl, address, setAddress, rpcUrl, setRpcUrl]);
+    if (paymasterRpcUrl) {
+      setPaymasterRpcUrl(paymasterRpcUrl);
+    }
+  }, [src, setAppUrl, address, setAddress, rpcUrl, setRpcUrl, paymasterRpcUrl, setPaymasterRpcUrl]);
 
   return isReady ? (
     <iframe

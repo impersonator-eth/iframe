@@ -32,6 +32,8 @@ type SafeInjectContextType = {
   address: string | undefined;
   appUrl: string | undefined;
   rpcUrl: string | undefined;
+  paymasterRpcUrl: string | undefined;
+  setPaymasterRpcUrl: React.Dispatch<React.SetStateAction<string | undefined>>;
   iframeRef: React.RefObject<HTMLIFrameElement> | null;
   latestTransaction: TransactionWithId | undefined;
   setAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
@@ -50,11 +52,13 @@ export const ImpersonatorIframeContext = createContext<SafeInjectContextType>({
   address: undefined,
   appUrl: undefined,
   rpcUrl: undefined,
+  paymasterRpcUrl: undefined,
   iframeRef: null,
   latestTransaction: undefined,
   setAddress: () => {},
   setAppUrl: () => {},
   setRpcUrl: () => {},
+  setPaymasterRpcUrl: () => {},
   sendMessageToIFrame: () => {},
   onUserTxConfirm: () => {},
   onTxReject: () => {},
@@ -72,12 +76,19 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
   const [appUrl, setAppUrl] = useState<string>();
   const [rpcUrl, setRpcUrl] = useState<string>();
   const [provider, setProvider] = useState<providers.StaticJsonRpcProvider>();
+  const [paymasterRpcUrl, setPaymasterRpcUrl] = useState<string>();
+  const [paymasterProvider, setPaymasterProvider] = useState<providers.StaticJsonRpcProvider>();
+
   const [latestTransaction, setLatestTransaction] =
     useState<TransactionWithId>();
   const [isReady, setIsReady] = useState<boolean>(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const communicator = useAppCommunicator(iframeRef);
+
+
+
+
 
   const sendMessageToIFrame = useCallback(
     function <T extends InterfaceMessageIds>(
@@ -131,6 +142,12 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
   };
 
   useEffect(() => {
+    if (!paymasterRpcUrl) return;
+    setPaymasterProvider(new providers.StaticJsonRpcProvider(paymasterRpcUrl));
+  }, [paymasterRpcUrl]);
+
+
+  useEffect(() => {
     if (!rpcUrl) return;
 
     setProvider(new providers.StaticJsonRpcProvider(rpcUrl));
@@ -153,12 +170,26 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
 
     communicator?.on(Methods.rpcCall, async (msg) => {
       const params = msg.data.params as RPCPayload;
+      const call = params.call;
 
       try {
-        const response = (await provider.send(
+        // Use paymaster provider for gas-related calls if available
+        if (paymasterProvider && (
+          call === 'eth_gasPrice' || 
+          call === 'eth_estimateGas'
+        )) {
+          const response = await paymasterProvider.send(
+            params.call,
+            params.params
+          ) as MethodToResponse["rpcCall"];
+          return response;
+        }
+
+        // Use regular provider for all other calls
+        const response = await provider.send(
           params.call,
           params.params
-        )) as MethodToResponse["rpcCall"];
+        ) as MethodToResponse["rpcCall"];
         return response;
       } catch (err) {
         return err;
@@ -225,7 +256,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
     });
 
     setIsReady(true);
-  }, [communicator, address, provider]);
+  }, [communicator, address, provider, paymasterProvider]);
 
   return (
     <ImpersonatorIframeContext.Provider
