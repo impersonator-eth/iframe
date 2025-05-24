@@ -37,7 +37,7 @@ export const ImpersonatorIframe = ({
         background: "white",
       }}
       src={src}
-      ref={iframeRef}
+      ref={iframeRef as React.RefObject<HTMLIFrameElement>}
       onLoad={onLoad}
     />
   ) : null;
