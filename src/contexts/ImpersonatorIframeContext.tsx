@@ -8,7 +8,15 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { providers, utils } from "ethers";
+import {
+  http,
+  getAddress,
+  createPublicClient,
+  PublicClient,
+  Hash,
+  isHex,
+  fromHex,
+} from "viem";
 import { useAppCommunicator } from "../../helpers/communicator";
 import {
   InterfaceMessageIds,
@@ -22,62 +30,68 @@ import {
   Transaction,
   TransactionDetails,
   TransactionStatus,
+  EIP712TypedData,
 } from "../../types";
 
-interface TransactionWithId extends Transaction {
-  id: number | string;
-}
-
 type SafeInjectContextType = {
-  address: string | undefined;
-  appUrl: string | undefined;
-  rpcUrl: string | undefined;
   iframeRef: React.RefObject<HTMLIFrameElement> | null;
-  latestTransaction: TransactionWithId | undefined;
+  isReady: boolean;
   setAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
   setAppUrl: React.Dispatch<React.SetStateAction<string | undefined>>;
   setRpcUrl: React.Dispatch<React.SetStateAction<string | undefined>>;
-  sendMessageToIFrame: <T extends InterfaceMessageIds>(
-    message: InterfaceMessageProps<T>,
-    requestId?: RequestId
-  ) => void;
-  onUserTxConfirm: (safeTxHash: string, requestId: RequestId) => void;
-  onTxReject: (requestId: RequestId) => void;
-  isReady: boolean;
 };
 
 export const ImpersonatorIframeContext = createContext<SafeInjectContextType>({
-  address: undefined,
-  appUrl: undefined,
-  rpcUrl: undefined,
   iframeRef: null,
-  latestTransaction: undefined,
+  isReady: false,
   setAddress: () => {},
   setAppUrl: () => {},
   setRpcUrl: () => {},
-  sendMessageToIFrame: () => {},
-  onUserTxConfirm: () => {},
-  onTxReject: () => {},
-  isReady: false,
 });
 
-interface FCProps {
+interface IframeProps {
   children: React.ReactNode;
+  address?: string;
+  appUrl?: string;
+  rpcUrl?: string;
+  sendTransaction?: (tx: Transaction) => Promise<string>;
+  signMessage?: (message: string) => Promise<string>;
+  signTypedData?: (typedData: EIP712TypedData) => Promise<string>;
 }
 
-export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
+export const ImpersonatorIframeProvider: React.FunctionComponent<
+  IframeProps
+> = ({
   children,
+  address: initialAddress,
+  appUrl: initialAppUrl,
+  rpcUrl: initialRpcUrl,
+  sendTransaction,
+  signMessage,
+  signTypedData,
 }) => {
-  const [address, setAddress] = useState<string>();
-  const [appUrl, setAppUrl] = useState<string>();
-  const [rpcUrl, setRpcUrl] = useState<string>();
-  const [provider, setProvider] = useState<providers.StaticJsonRpcProvider>();
-  const [latestTransaction, setLatestTransaction] =
-    useState<TransactionWithId>();
+  const [address, setAddress] = useState<string | undefined>(initialAddress);
+  const [appUrl, setAppUrl] = useState<string | undefined>(initialAppUrl);
+  const [rpcUrl, setRpcUrl] = useState<string | undefined>(initialRpcUrl);
+  const [publicClient, setPublicClient] = useState<PublicClient>();
   const [isReady, setIsReady] = useState<boolean>(false);
+  const [chainId, setChainId] = useState<number>();
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const communicator = useAppCommunicator(iframeRef);
+
+  // Update states when props change
+  useEffect(() => {
+    if (initialAddress !== undefined) setAddress(initialAddress);
+  }, [initialAddress]);
+
+  useEffect(() => {
+    if (initialAppUrl !== undefined) setAppUrl(initialAppUrl);
+  }, [initialAppUrl]);
+
+  useEffect(() => {
+    if (initialRpcUrl !== undefined) setRpcUrl(initialRpcUrl);
+  }, [initialRpcUrl]);
 
   const sendMessageToIFrame = useCallback(
     function <T extends InterfaceMessageIds>(
@@ -90,58 +104,61 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
         version: "0.4.2",
       };
 
-      if (iframeRef) {
+      if (iframeRef && appUrl) {
         iframeRef.current?.contentWindow?.postMessage(
           requestWithMessage,
-          appUrl!
+          appUrl
         );
       }
     },
     [iframeRef, appUrl]
   );
 
-  const onUserTxConfirm = (safeTxHash: string, requestId: RequestId) => {
-    // Safe Apps SDK V1 Handler
-    sendMessageToIFrame(
-      {
-        messageId: "TRANSACTION_CONFIRMED", // INTERFACE_MESSAGES.TRANSACTION_CONFIRMED
-        data: { safeTxHash },
-      },
-      requestId
-    );
+  const onUserTxConfirm = useCallback(
+    (data: object, requestId: RequestId) => {
+      // Safe Apps SDK V1 Handler
+      sendMessageToIFrame(
+        { messageId: "TRANSACTION_CONFIRMED", data },
+        requestId
+      );
+      // Safe Apps SDK V2 Handler
+      communicator?.send(data, requestId as string);
+    },
+    [communicator, sendMessageToIFrame]
+  );
 
-    // Safe Apps SDK V2 Handler
-    communicator?.send({ safeTxHash }, requestId as string);
-  };
-
-  const onTxReject = (requestId: RequestId) => {
-    console.log("onTxReject", requestId);
-
-    // Safe Apps SDK V1 Handler
-    sendMessageToIFrame(
-      {
-        messageId: "TRANSACTION_REJECTED", // INTERFACE_MESSAGES.TRANSACTION_REJECTED
-        data: {},
-      },
-      requestId
-    );
-
-    // Safe Apps SDK V2 Handler
-    communicator?.send("Transaction was rejected", requestId as string, true);
-  };
+  const onTxReject = useCallback(
+    (requestId: RequestId) => {
+      // Safe Apps SDK V1 Handler
+      sendMessageToIFrame(
+        { messageId: "TRANSACTION_REJECTED", data: {} },
+        requestId
+      );
+      // Safe Apps SDK V2 Handler
+      communicator?.send("Transaction was rejected", requestId as string, true);
+    },
+    [communicator, sendMessageToIFrame]
+  );
 
   useEffect(() => {
     if (!rpcUrl) return;
 
-    setProvider(new providers.StaticJsonRpcProvider(rpcUrl));
+    const publicClient = createPublicClient({ transport: http(rpcUrl) });
+    setPublicClient(publicClient);
+
+    async function getChainId() {
+      const chainId = await publicClient.getChainId();
+      setChainId(chainId);
+    }
+    getChainId();
   }, [rpcUrl]);
 
   useEffect(() => {
-    if (!provider) return;
+    if (!publicClient || !chainId) return;
 
     communicator?.on(Methods.getSafeInfo, async () => ({
       safeAddress: address,
-      chainId: (await provider.getNetwork()).chainId,
+      chainId: chainId,
       owners: [],
       threshold: 1,
       isReadOnly: false,
@@ -152,55 +169,40 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
     }));
 
     communicator?.on(Methods.rpcCall, async (msg) => {
+      console.log("communicator.rpcCall", msg);
       const params = msg.data.params as RPCPayload;
-
       try {
-        const response = (await provider.send(
-          params.call,
-          params.params
-        )) as MethodToResponse["rpcCall"];
+        const response = (await publicClient.request({
+          method: params.call,
+          params: params.params,
+        })) as MethodToResponse["rpcCall"];
         return response;
       } catch (err) {
         return err;
       }
     });
 
-    communicator?.on(Methods.sendTransactions, (msg) => {
-      console.log("communicator.sendTransactions", msg);
-
-      const transactions = (msg.data.params as { txs: Transaction[] }).txs.map(
-        ({ to, ...rest }) => ({
-          to: utils.getAddress(to), // checksummed
-          ...rest,
-        })
-      );
-      setLatestTransaction({
-        id: msg.data.id,
-        ...transactions[0],
-      });
-      // openConfirmationModal(transactions, msg.data.params.params, msg.data.id)
-    });
-
     communicator?.on(Methods.getTxBySafeTxHash, async (msg) => {
       console.log("communicator.getTxBySafeTxHash", msg);
-      const { safeTxHash } = msg.data.params as { safeTxHash: string };
+      const { safeTxHash } = msg.data.params as { safeTxHash: Hash };
 
       // some RPCs don't return timestamp with txn so using blockNumber to check if txn confirmed or not
-      const { timestamp, blockNumber, to, data, value } =
-        await provider.getTransaction(safeTxHash);
+      const { blockNumber, to, input, value } =
+        await publicClient.getTransaction({ hash: safeTxHash });
+      const { timestamp } = await publicClient.getBlock({ blockNumber });
 
       const response: TransactionDetails = {
         txId: safeTxHash,
         txStatus: blockNumber
           ? TransactionStatus.SUCCESS
           : TransactionStatus.PENDING,
-        executedAt: timestamp,
+        executedAt: Number(timestamp),
         txInfo: {
           type: "Custom",
           to: {
             value: to ?? "",
           },
-          dataSize: data,
+          dataSize: input,
           value: value.toString(),
           isCancellation: false,
         },
@@ -210,39 +212,65 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<FCProps> = ({
       return response;
     });
 
-    communicator?.on(Methods.signMessage, async (msg) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { message } = msg.data.params as SignMessageParams;
+    communicator?.on(Methods.sendTransactions, async (msg) => {
+      console.log("communicator.sendTransactions", msg);
+      try {
+        const transactions = (
+          msg.data.params as { txs: Transaction[] }
+        ).txs.map(
+          // remove maxFeePerGas and maxPriorityFeePerGas from txs because they cause an error sometimes
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          ({ to, maxFeePerGas, maxPriorityFeePerGas, ...rest }) => ({
+            to: to ? getAddress(to) : null, // checksummed
+            ...rest,
+          })
+        );
+        const safeTxHash = await sendTransaction?.(transactions[0]);
+        onUserTxConfirm({ safeTxHash }, msg.data.id as string);
+      } catch (err) {
+        onTxReject(msg.data.id as string);
+      }
+    });
 
-      // openSignMessageModal(message, msg.data.id, Methods.signMessage)
+    communicator?.on(Methods.signMessage, async (msg) => {
+      console.log("communicator.signMessage", msg);
+      try {
+        const { message } = msg.data.params as SignMessageParams;
+        const msgStr = isHex(message) ? fromHex(message, "string") : message;
+        const signature = await signMessage?.(msgStr);
+        onUserTxConfirm({ signature }, msg.data.id as string);
+      } catch (err) {
+        onTxReject(msg.data.id as string);
+      }
     });
 
     communicator?.on(Methods.signTypedMessage, async (msg) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { typedData } = msg.data.params as SignTypedMessageParams;
-
-      // openSignMessageModal(typedData, msg.data.id, Methods.signTypedMessage)
+      console.log("communicator.signTypedMessage", msg);
+      try {
+        const { typedData } = msg.data.params as SignTypedMessageParams;
+        const signature = await signTypedData?.(typedData);
+        onUserTxConfirm({ signature }, msg.data.id as string);
+      } catch (err) {
+        onTxReject(msg.data.id as string);
+      }
     });
 
     setIsReady(true);
-  }, [communicator, address, provider]);
+  }, [
+    communicator,
+    address,
+    publicClient,
+    onUserTxConfirm,
+    onTxReject,
+    sendTransaction,
+    signMessage,
+    signTypedData,
+    chainId,
+  ]);
 
   return (
     <ImpersonatorIframeContext.Provider
-      value={{
-        address,
-        appUrl,
-        rpcUrl,
-        iframeRef,
-        latestTransaction,
-        setAddress,
-        setAppUrl,
-        setRpcUrl,
-        sendMessageToIFrame,
-        onUserTxConfirm,
-        onTxReject,
-        isReady,
-      }}
+      value={{ iframeRef, isReady, setAddress, setAppUrl, setRpcUrl }}
     >
       {children}
     </ImpersonatorIframeContext.Provider>
