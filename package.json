@@ -1,7 +1,7 @@
 {
   "name": "@impersonator/iframe",
   "description": "An iframe component that allows to open dapps with any Ethereum address impersonated.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "Apoorv Lathey <apoorv.xyz>",
   "license": "MIT",
   "homepage": "https://github.com/impersonator-eth/iframe#readme",
@@ -23,8 +23,8 @@
     "postpack": "clean-package restore"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "viem": "^2.30.0"
   },
   "devDependencies": {
@@ -43,8 +43,8 @@
     "vite-plugin-dts": "^3.6.3"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "viem": "^2.30.0"
   },
   "files": [
