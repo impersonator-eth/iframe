@@ -1,5 +1,5 @@
 export const getSDKVersion = () => {
-  return "7.6.0"; // IMPORTANT: needs to be >= 1.0.0
+  return "9.1.0"; // IMPORTANT: needs to be >= 1.0.0
 };
 
 // i.e. 0-255 -> '00'-'ff'

@@ -159,7 +159,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
     communicator?.on(Methods.getSafeInfo, async () => ({
       safeAddress: address,
       chainId: chainId,
-      owners: [],
+      owners: [address],
       threshold: 1,
       isReadOnly: false,
     }));
