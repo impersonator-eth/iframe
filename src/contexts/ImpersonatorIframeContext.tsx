@@ -227,7 +227,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
         );
         const safeTxHash = await sendTransaction?.(transactions[0]);
         onUserTxConfirm({ safeTxHash }, msg.data.id as string);
-      } catch (err) {
+      } catch {
         onTxReject(msg.data.id as string);
       }
     });
@@ -239,7 +239,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
         const msgStr = isHex(message) ? fromHex(message, "string") : message;
         const signature = await signMessage?.(msgStr);
         onUserTxConfirm({ signature }, msg.data.id as string);
-      } catch (err) {
+      } catch {
         onTxReject(msg.data.id as string);
       }
     });
@@ -250,7 +250,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
         const { typedData } = msg.data.params as SignTypedMessageParams;
         const signature = await signTypedData?.(typedData);
         onUserTxConfirm({ signature }, msg.data.id as string);
-      } catch (err) {
+      } catch {
         onTxReject(msg.data.id as string);
       }
     });
