@@ -57,6 +57,8 @@ interface IframeProps {
   sendTransaction?: (tx: Transaction) => Promise<string>;
   signMessage?: (message: string) => Promise<string>;
   signTypedData?: (typedData: EIP712TypedData) => Promise<string>;
+  /** Called when the dapp requests a chain switch via wallet_switchEthereumChain */
+  onChainSwitchRequest?: (chainId: number) => void;
 }
 
 export const ImpersonatorIframeProvider: React.FunctionComponent<
@@ -69,6 +71,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
   sendTransaction,
   signMessage,
   signTypedData,
+  onChainSwitchRequest,
 }) => {
   const [address, setAddress] = useState<string | undefined>(initialAddress);
   const [appUrl, setAppUrl] = useState<string | undefined>(initialAppUrl);
@@ -171,6 +174,24 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
     communicator?.on(Methods.rpcCall, async (msg) => {
       console.log("communicator.rpcCall", msg);
       const params = msg.data.params as RPCPayload;
+
+      // Intercept wallet_switchEthereumChain and wallet_addEthereumChain
+      if (
+        (params.call as string) === "wallet_switchEthereumChain" ||
+        (params.call as string) === "wallet_addEthereumChain"
+      ) {
+        try {
+          const chainIdHex = (params.params as any)?.[0]?.chainId as string;
+          if (chainIdHex && onChainSwitchRequest) {
+            const requestedChainId = parseInt(chainIdHex, 16);
+            onChainSwitchRequest(requestedChainId);
+          }
+          return null; // success
+        } catch (err) {
+          return err;
+        }
+      }
+
       try {
         const response = (await publicClient.request({
           method: params.call,
@@ -266,6 +287,7 @@ export const ImpersonatorIframeProvider: React.FunctionComponent<
     signMessage,
     signTypedData,
     chainId,
+    onChainSwitchRequest,
   ]);
 
   return (
